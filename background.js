@@ -15,9 +15,7 @@
   }
 
   chrome.tabs.onUpdated.addListener(function(tabId, changeInfo) {
-    if (changeInfo.status === 'loading') {
-      updateBadge(tabId, '');
-    }
+    if (changeInfo.status === 'loading') updateBadge(tabId, '');
   });
 
   chrome.tabs.onRemoved.addListener(function(tabId) {
@@ -69,7 +67,7 @@
   function doRefresh(tabId, sendResponse) {
     if (!tabId) { sendResponse({images:[]}); return; }
     chrome.webNavigation.getAllFrames({tabId:tabId}, function(frames) {
-      if (!frames||!frames.length) { sendResponse({images:[]}); return; }
+      if (chrome.runtime.lastError || !frames || !frames.length) { sendResponse({images:[]}); return; }
       var all = [];
       var left = frames.length;
       frames.forEach(function(f) {
@@ -94,8 +92,9 @@
     var img = queue.shift();
     var name = (img.prompt||'image').replace(/[^a-z0-9]/gi,'-').substring(0,50) + '_' + Date.now() + '.jpg';
 
-    function finish() {
+    function finish(success) {
       done++;
+      if (!success) console.warn('[PDL] Download failed:', img.src);
       busy = false;
       runQueue();
     }
@@ -112,14 +111,17 @@
         var url = URL.createObjectURL(blob);
         chrome.downloads.download({url:url,filename:folderName+'/'+name,saveAs:false}, function(id) {
           setTimeout(function(){URL.revokeObjectURL(url)},10000);
-          finish();
+          if (chrome.runtime.lastError) { finish(false); return; }
+          finish(true);
         });
       } catch(e) {
-        finish();
+        console.warn('[PDL] Blob conversion failed:', e);
+        finish(false);
       }
     } else {
       chrome.downloads.download({url:img.src,filename:folderName+'/'+name,saveAs:false}, function(id) {
-        finish();
+        if (chrome.runtime.lastError) { finish(false); return; }
+        finish(true);
       });
     }
   }
@@ -144,4 +146,3 @@
     }
   });
 })();
-

@@ -13,6 +13,13 @@
   var previewSize = parseInt(localStorage.getItem('pdl-preview') || '180');
   var lightboxImg = null;
   var prevFocus = null;
+  var keydownHandler = null;
+
+  function esc(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
 
   var SVG = {
     close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
@@ -74,7 +81,9 @@
     '#pdl .pdl-card.pdl-sel{border-color:#e94560}' +
     '#pdl .pdl-card img{width:100%;height:100%;object-fit:cover;display:block}' +
     '#pdl .pdl-check{position:absolute;top:6px;left:6px;width:24px;height:24px;background:rgba(0,0,0,.6);border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;z-index:1;transition:background .15s}' +
-    '#pdl .pdl-card.pdl-sel .pdl-check{background:#e94560}#pdl .pdl-expand{position:absolute;top:6px;right:6px;width:24px;height:24px;background:rgba(0,0,0,.6);border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;z-index:1;cursor:pointer;transition:background .15s}#pdl .pdl-expand:hover{background:#e94560}' +
+    '#pdl .pdl-card.pdl-sel .pdl-check{background:#e94560}' +
+    '#pdl .pdl-expand{position:absolute;top:6px;right:6px;width:24px;height:24px;background:rgba(0,0,0,.6);border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;z-index:1;cursor:pointer;transition:background .15s}' +
+    '#pdl .pdl-expand:hover{background:#e94560}' +
     '#pdl .pdl-progress{display:none;padding:8px 16px;background:#16213e;border-top:1px solid #0f3460}' +
     '#pdl .pdl-progress.pdl-show{display:block}' +
     '#pdl .pdl-pbar{height:6px;background:#0f3460;border-radius:3px;overflow:hidden;margin-bottom:4px}' +
@@ -141,7 +150,7 @@
     closeLightbox();
     setTimeout(function() {
       el.classList.remove('pdl-open', 'pdl-closing');
-      if (prevFocus && prevFocus.focus) prevFocus.focus();
+      try { if (prevFocus && prevFocus.focus) prevFocus.focus(); } catch(e) {}
     }, 150);
     if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
   }
@@ -207,7 +216,7 @@
     html += '</div>';
     html += '<div class="pdl-filter-group">';
     html += '<label>Folder:</label>';
-    html += '<input type="text" id="pdl-folder" value="' + folderName + '" style="width:160px" aria-label="Download folder name">';
+    html += '<input type="text" id="pdl-folder" value="' + esc(folderName) + '" style="width:160px" aria-label="Download folder name">';
     html += '</div>';
     html += '</div>';
     html += '<div id="pdl-gal" class="pdl-gallery"><div class="pdl-empty">Click Refresh to scan for images.</div></div>';
@@ -259,14 +268,15 @@
       });
     };
 
-    document.addEventListener('keydown', function(e) {
+    keydownHandler = function(e) {
       if (!visible) return;
       if (e.key === 'Escape') {
         if (el.querySelector('#pdl-lb').classList.contains('pdl-open')) closeLightbox();
         else close();
         e.stopPropagation();
       }
-    });
+    };
+    document.addEventListener('keydown', keydownHandler);
 
     el.querySelector('#pdl-lb-x').onclick = closeLightbox;
     el.querySelector('#pdl-lb').onclick = function(e) {
@@ -346,7 +356,8 @@
       c.style.width = previewSize + 'px';
       c.style.height = previewSize + 'px';
       c.setAttribute('data-id', img.id);
-      c.innerHTML = '<div class="pdl-check">' + (sel[img.id] ? '\u2713' : '') + '</div><img src="' + img.src + '" loading="lazy"><div class="pdl-expand" title="Preview">' + SVG.expand + '</div>';
+      var safeSrc = esc(img.src);
+      c.innerHTML = '<div class="pdl-check">' + (sel[img.id] ? '\u2713' : '') + '</div><img src="' + safeSrc + '" loading="lazy"><div class="pdl-expand" title="Preview">' + SVG.expand + '</div>';
       c.onclick = function(e) {
         if (e.target.closest('.pdl-expand')) { openLightbox(img); return; }
         toggleSelect(img.id);
@@ -408,8 +419,3 @@
     return true;
   });
 })();
-
-
-
-
-

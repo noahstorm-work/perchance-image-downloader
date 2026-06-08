@@ -3,6 +3,7 @@
 
   var imgs = {};
   var lastPrompt = 'unknown';
+  var origConsoleLog = console.log;
 
   function getPrompt() {
     var els = document.querySelectorAll('textarea, input[type="text"]');
@@ -29,8 +30,8 @@
       if (!src) return;
       if (src.indexOf('perchance.org') === -1 && src.indexOf('data:image') !== 0) return;
       if (img.naturalWidth < 50 || img.naturalHeight < 50) return;
-      var id = src.indexOf('data:image') === 0 ? 'd' + Date.now() : src.split('/').pop().split('?')[0];
-      if (!id) id = 'img' + Date.now();
+      var id = src.indexOf('data:image') === 0 ? 'd' + Date.now() + '_' + Math.random().toString(36).substr(2,5) : src.split('/').pop().split('?')[0];
+      if (!id) id = 'img' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
       add(id, src);
     });
     notifyBadge();
@@ -48,15 +49,14 @@
   window.addEventListener('message', function(e) {
     try {
       if (!e.data || typeof e.data !== 'object') return;
-      if (e.data.type === 'finished' && e.data.dataUrl) { add('_' + Date.now(), e.data.dataUrl); notifyBadge(); }
+      if (e.data.type === 'finished' && e.data.dataUrl) { add('_' + Date.now() + '_' + Math.random().toString(36).substr(2,5), e.data.dataUrl); notifyBadge(); }
       if (e.data.status === 'success' && e.data.imageId) { add(e.data.imageId, 'https://image-generation.perchance.org/image/' + e.data.imageId + '.jpeg'); notifyBadge(); }
       if (e.data.prompt) lastPrompt = e.data.prompt;
     } catch(ex) {}
   });
 
-  var orig = console.log;
   console.log = function() {
-    orig.apply(console, arguments);
+    origConsoleLog.apply(console, arguments);
     for (var i = 0; i < arguments.length; i++) {
       var a = arguments[i];
       if (a && typeof a === 'object' && a.status === 'success' && a.imageId) { add(a.imageId, 'https://image-generation.perchance.org/image/' + a.imageId + '.jpeg', a.prompt); notifyBadge(); }

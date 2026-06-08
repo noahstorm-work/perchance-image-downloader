@@ -1,0 +1,10 @@
+docs/
+popup.html
+popup.js
+popup.css
+options.html
+options.js
+options.css
+*.log
+.DS_Store
+Thumbs.db

@@ -8,10 +8,7 @@
     "storage",
     "contextMenus",
     "activeTab",
-    "webNavigation",
-    "webRequest",
-    "webRequestBlocking",
-    "notifications"
+    "webNavigation"
   ],
   "web_accessible_resources": [
     "icons/*"
@@ -40,9 +37,6 @@
     ],
     "persistent": false
   },
-  "options_ui": {
-    "page": "options.html"
-  },
   "commands": {
     "download-all": {
       "suggested_key": {
@@ -56,4 +50,3 @@
     "96": "icons/icon-96.png"
   }
 }
-

@@ -1,0 +1,36 @@
+{
+  "env": {
+    "browser": true,
+    "webextensions": true,
+    "es6": false
+  },
+  "globals": {
+    "chrome": "readonly",
+    "Uint8Array": "readonly",
+    "atob": "readonly",
+    "Blob": "readonly",
+    "URL": "readonly"
+  },
+  "parserOptions": {
+    "ecmaVersion": 5
+  },
+  "rules": {
+    "no-undef": "error",
+    "no-unused-vars": ["warn", { "args": "none" }],
+    "no-redeclare": "error",
+    "no-shadow": "warn",
+    "eqeqeq": ["warn", "smart"],
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-script-url": "error",
+    "no-self-assign": "error",
+    "no-self-compare": "error",
+    "no-throw-literal": "warn",
+    "no-unused-expressions": "warn",
+    "no-useless-escape": "warn",
+    "no-with": "error",
+    "radix": "warn",
+    "strict": "off"
+  }
+}

@@ -1,22 +1,30 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "browser_specific_settings": {
     "gecko": {
       "id": "{e92ff565-2526-4bcc-b76c-f0994cc3cba5}"
     }
   },
   "name": "Perchance Image Downloader",
-  "version": "2.0.0",
+  "version": "2.4.0",
   "description": "Download generated images from Perchance AI Image Generator",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "permissions": [
-    "downloads",
     "storage",
-    "contextMenus",
     "activeTab",
     "webNavigation"
   ],
+  "optional_permissions": [
+    "downloads",
+    "contextMenus"
+  ],
   "web_accessible_resources": [
-    "icons/*"
+    {
+      "resources": ["icons/*", "icons/svg/*", "overlay.css"],
+      "matches": ["https://*.perchance.org/*"]
+    }
   ],
   "content_scripts": [
     {
@@ -32,15 +40,14 @@
       "run_at": "document_idle"
     }
   ],
-  "browser_action": {
+  "action": {
     "default_icon": "icons/icon-48.png",
     "default_title": "Toggle Image Gallery"
   },
   "background": {
     "scripts": [
       "background.js"
-    ],
-    "persistent": false
+    ]
   },
   "commands": {
     "download-all": {

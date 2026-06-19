@@ -36,10 +36,16 @@
 
   function ensureDownloadsPermission(callback) {
     if (!apiAvailable('permissions')) { callback(true); return; }
-    api.permissions.contains({permissions: ['downloads']}, function(hasPerm) {
-      if (hasPerm) { callback(true); return; }
-      api.permissions.request({permissions: ['downloads']}, function(granted) {
-        callback(!!granted);
+    var needed = [];
+    try { if (!api.permissions.contains) { callback(true); return; } } catch(e) { callback(true); return; }
+    api.permissions.contains({permissions: ['downloads']}, function(hasDl) {
+      if (!hasDl) needed.push('downloads');
+      api.permissions.contains({permissions: ['contextMenus']}, function(hasCtx) {
+        if (!hasCtx) needed.push('contextMenus');
+        if (!needed.length) { callback(true); return; }
+        api.permissions.request({permissions: needed}, function(granted) {
+          callback(!!granted);
+        });
       });
     });
   }
@@ -159,13 +165,15 @@
     });
 
     if (apiAvailable('contextMenus')) {
-      api.contextMenus.create({
-        id: 'pdl-ctx',
-        title: 'Download with Perchance Downloader',
-        contexts: ['image'],
-        documentUrlPatterns: ['https://*.perchance.org/*'],
-        icons: { '48': 'icons/icon-48.png' }
-      });
+      try {
+        api.contextMenus.create({
+          id: 'pdl-ctx',
+          title: 'Download with Perchance Downloader',
+          contexts: ['image'],
+          documentUrlPatterns: ['https://*.perchance.org/*'],
+          icons: { '48': 'icons/icon-48.png' }
+        });
+      } catch(e) {}
 
       api.contextMenus.onClicked.addListener(function(info) {
         if (info.menuItemId !== 'pdl-ctx' || !info.srcUrl) return;
@@ -240,6 +248,7 @@
     if (msg.type === 'downloadImages') {
       ensureDownloadsPermission(function(granted) {
         if (!granted) { sendResponse({ok:0, error:'permission denied'}); return; }
+        try { if (apiAvailable('contextMenus')) { api.contextMenus.create({ id:'pdl-ctx', title:'Download with Perchance Downloader', contexts:['image'], documentUrlPatterns:['https://*.perchance.org/*'], icons:{'48':'icons/icon-48.png'} }); } } catch(e) {}
         var added = 0;
         var skipped = 0;
         msg.images.forEach(function(img) {

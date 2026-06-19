@@ -690,10 +690,10 @@ test('overlay.js has showToast function', function() {
 
 console.log('\n--- Version Check ---');
 
-test('manifest version is 2.4.0', function() {
+test('manifest version is 2.4.1', function() {
   var fs = require('fs');
   var m = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
-  assert.strictEqual(m.version, '2.4.0');
+  assert.strictEqual(m.version, '2.4.1');
 });
 
 console.log('\n=============================');

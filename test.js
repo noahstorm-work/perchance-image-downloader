@@ -1925,9 +1925,9 @@ test('manifest is MV3', function() {
   assert.strictEqual(m.manifest_version, 3);
 });
 
-test('manifest version is 2.4.1', function() {
+test('manifest version is 2.4.2', function() {
   var m = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
-  assert.strictEqual(m.version, '2.4.1');
+  assert.strictEqual(m.version, '2.4.2');
 });
 
 test('manifest has CSP', function() {

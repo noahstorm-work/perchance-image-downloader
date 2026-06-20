@@ -1,6 +1,6 @@
 {
   "name": "perchance-image-downloader",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "A Firefox extension to download AI-generated images from Perchance AI Image Generator",
   "main": "background.js",
   "scripts": {

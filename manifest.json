@@ -6,7 +6,7 @@
     }
   },
   "name": "Perchance Image Downloader",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Download generated images from Perchance AI Image Generator",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"

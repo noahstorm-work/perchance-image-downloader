@@ -2,7 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var terser = require('terser');
 
-var files = ['background.js', 'content.js', 'overlay.js'];
+var files = ['shared.js', 'background.js', 'content.js', 'overlay.js'];
 var outDir = 'dist';
 
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
@@ -14,7 +14,7 @@ async function build() {
     var code = fs.readFileSync(file, 'utf8');
     var result = await terser.minify(code, {
       ecma: 5,
-      compress: { drop_console: false },
+      compress: { drop_console: true },
       mangle: true,
       output: { comments: false }
     });
@@ -32,14 +32,9 @@ async function build() {
 
   var iconDir = path.join(outDir, 'icons');
   if (!fs.existsSync(iconDir)) fs.mkdirSync(iconDir);
-  var svgDir = path.join(iconDir, 'svg');
-  if (!fs.existsSync(svgDir)) fs.mkdirSync(svgDir);
 
   fs.readdirSync('icons').forEach(function(f) {
     if (f.endsWith('.png')) fs.copyFileSync(path.join('icons', f), path.join(iconDir, f));
-  });
-  fs.readdirSync('icons/svg').forEach(function(f) {
-    fs.copyFileSync(path.join('icons/svg', f), path.join(svgDir, f));
   });
 
   console.log('\nBuild complete: ' + outDir + '/');

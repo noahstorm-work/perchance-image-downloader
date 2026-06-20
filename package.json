@@ -1,10 +1,10 @@
 {
   "name": "perchance-image-downloader",
-  "version": "2.3.0",
+  "version": "2.4.1",
   "description": "A Firefox extension to download AI-generated images from Perchance AI Image Generator",
   "main": "background.js",
   "scripts": {
-    "lint": "eslint background.js content.js overlay.js",
+    "lint": "eslint shared.js background.js content.js overlay.js",
     "test": "node test.js",
     "build": "node build.js"
   },

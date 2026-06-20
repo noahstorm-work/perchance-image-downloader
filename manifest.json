@@ -14,16 +14,14 @@
   "permissions": [
     "storage",
     "activeTab",
-    "webNavigation"
-  ],
-  "optional_permissions": [
+    "webNavigation",
     "downloads",
     "contextMenus"
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/*", "icons/svg/*", "overlay.css"],
-      "matches": ["https://*.perchance.org/*"]
+      "resources": ["overlay.css"],
+      "matches": ["https://perchance.org/*", "https://*.perchance.org/*"]
     }
   ],
   "content_scripts": [
@@ -33,6 +31,7 @@
         "https://*.perchance.org/*"
       ],
       "js": [
+        "shared.js",
         "content.js",
         "overlay.js"
       ],
@@ -46,6 +45,7 @@
   },
   "background": {
     "scripts": [
+      "shared.js",
       "background.js"
     ]
   },

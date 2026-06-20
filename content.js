@@ -1,41 +1,16 @@
 (function() {
   'use strict';
 
-  var api = typeof browser !== 'undefined' ? browser : chrome;
-
-  var DETECTION_CONFIG = {
-    allowedDomains: ['perchance.org', 'image-generation.perchance.org'],
-    minImageSize: 50,
-    promptSelectors: 'textarea, input[type="text"]',
-    promptMinLength: 3,
-    promptMaxLength: 500,
-    imageIdBaseUrl: 'https://image-generation.perchance.org/image/',
-    imageIdSuffix: '.jpeg',
-    postMessagePatterns: [
-      { type: 'finished', srcKey: 'dataUrl', idPrefix: '_' },
-      { type: 'success', srcTemplate: 'https://image-generation.perchance.org/image/{imageId}.jpeg', idKey: 'imageId' }
-    ],
-    consoleLogPatterns: [
-      { statusMatch: 'success', srcTemplate: 'https://image-generation.perchance.org/image/{imageId}.jpeg', idKey: 'imageId' }
-    ],
-    promptKeys: ['prompt']
-  };
+  var s = self.__pdl;
+  var api = s.api;
+  var DETECTION_CONFIG = s.DETECTION_CONFIG;
+  var isAllowedUrl = s.isAllowedUrl;
+  var extractPrompt = s.extractPrompt;
+  var generateId = s.generateId;
 
   var imgs = {};
   var lastPrompt = 'unknown';
   var origConsoleLog = console.log;
-
-  function isAllowedUrl(src) {
-    if (src.indexOf('data:image') === 0) return true;
-    try {
-      var hostname = new URL(src).hostname;
-      var domains = DETECTION_CONFIG.allowedDomains;
-      for (var i = 0; i < domains.length; i++) {
-        if (hostname === domains[i] || hostname.endsWith('.' + domains[i])) return true;
-      }
-    } catch(e) {}
-    return false;
-  }
 
   function getPrompt() {
     var els = document.querySelectorAll(DETECTION_CONFIG.promptSelectors);
@@ -52,12 +27,36 @@
   // so it is safe against XSS. If prompt rendering ever changes to use innerHTML,
   // this trust boundary must be re-evaluated.
   function add(id, src, prompt) {
-    if (!id || !src || imgs[id]) return;
+    if (!id || !src) return;
+    if (imgs[id]) return;
+    var keys = Object.keys(imgs);
+    for (var i = 0; i < keys.length; i++) {
+      if (imgs[keys[i]].src === src) return;
+    }
     imgs[id] = { id: id, src: src, prompt: prompt || getPrompt() || 'image', timestamp: new Date().toISOString() };
   }
 
-  function generateId(prefix) {
-    return prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  function processImageMessage(pattern, data) {
+    if (pattern.type && data.type === pattern.type && data[pattern.srcKey || 'dataUrl']) {
+      var id = generateId(pattern.idPrefix || '_');
+      add(id, data[pattern.srcKey || 'dataUrl']);
+      notifyBadge();
+    }
+    if (pattern.statusMatch && data.status === pattern.statusMatch && data[pattern.idKey]) {
+      var imgId = data[pattern.idKey];
+      var imgUrl = pattern.srcTemplate.replace('{imageId}', imgId);
+      add(imgId, imgUrl);
+      notifyBadge();
+    }
+  }
+
+  function processLogMessage(pattern, arg) {
+    if (arg && typeof arg === 'object' && arg.status === pattern.statusMatch && arg[pattern.idKey]) {
+      var imgId = arg[pattern.idKey];
+      var imgUrl = pattern.srcTemplate.replace('{imageId}', imgId);
+      add(imgId, imgUrl, arg.prompt);
+      notifyBadge();
+    }
   }
 
   function notifyBadge() {
@@ -65,24 +64,56 @@
     try { api.runtime.sendMessage({type:'imageCount', count:count}); } catch(e) {}
   }
 
+  function isElementVisible(el) {
+    var rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    var style = window.getComputedStyle(el);
+    if (style.display === 'none') return false;
+    if (style.visibility === 'hidden') return false;
+    if (parseFloat(style.opacity) === 0) return false;
+    if (style.position === 'absolute' || style.position === 'fixed') {
+      if (rect.bottom < 0 || rect.right < 0) return false;
+    }
+    var parent = el.parentElement;
+    while (parent && parent !== document.documentElement) {
+      var ps = window.getComputedStyle(parent);
+      if (ps.display === 'none') return false;
+      parent = parent.parentElement;
+    }
+    return true;
+  }
+
   function scan() {
+    var found = {};
     document.querySelectorAll('img').forEach(function(img) {
       var src = img.src || '';
       if (!src) return;
+      if (img.closest('#pdl')) return;
       if (!isAllowedUrl(src)) return;
+      if (!isElementVisible(img)) return;
       if (img.naturalWidth < DETECTION_CONFIG.minImageSize || img.naturalHeight < DETECTION_CONFIG.minImageSize) return;
       var id = src.indexOf('data:image') === 0 ? generateId('d') : src.split('/').pop().split('?')[0];
       if (!id) id = generateId('img');
-      add(id, src);
+      if (!found[id]) {
+        found[id] = { id: id, src: src, prompt: getPrompt() || 'image', timestamp: new Date().toISOString() };
+      }
     });
+    imgs = found;
     notifyBadge();
   }
 
-  api.runtime.onMessage.addListener(function(msg, s, send) {
+  api.runtime.onMessage.addListener(function(msg, sender, send) {
     if (msg.type === 'refreshImages') {
       imgs = {};
       scan();
       send({images: Object.values(imgs)});
+    }
+    if (msg.type === 'downloadAll') {
+      var allImages = [];
+      Object.keys(imgs).forEach(function(id) { allImages.push(imgs[id]); });
+      if (allImages.length > 0) {
+        api.runtime.sendMessage({type: 'downloadImages', images: allImages});
+      }
     }
     return true;
   });
@@ -92,22 +123,10 @@
       if (!e.data || typeof e.data !== 'object') return;
       var patterns = DETECTION_CONFIG.postMessagePatterns;
       for (var i = 0; i < patterns.length; i++) {
-        var p = patterns[i];
-        if (p.type && e.data.type === p.type && e.data[p.srcKey || 'dataUrl']) {
-          add(generateId(p.idPrefix || '_'), e.data[p.srcKey || 'dataUrl']);
-          notifyBadge();
-        }
-        if (p.statusMatch && e.data.status === p.statusMatch && e.data[p.idKey]) {
-          var imgId = e.data[p.idKey];
-          var imgUrl = p.srcTemplate.replace('{imageId}', imgId);
-          add(imgId, imgUrl);
-          notifyBadge();
-        }
+        processImageMessage(patterns[i], e.data);
       }
-      var promptKeys = DETECTION_CONFIG.promptKeys;
-      for (var j = 0; j < promptKeys.length; j++) {
-        if (e.data[promptKeys[j]]) lastPrompt = e.data[promptKeys[j]];
-      }
+      var prompt = extractPrompt(e.data);
+      if (prompt) lastPrompt = prompt;
     } catch(ex) {}
   });
 
@@ -117,25 +136,27 @@
       var a = arguments[i];
       var patterns = DETECTION_CONFIG.consoleLogPatterns;
       for (var j = 0; j < patterns.length; j++) {
-        var p = patterns[j];
-        if (a && typeof a === 'object' && a.status === p.statusMatch && a[p.idKey]) {
-          var imgId = a[p.idKey];
-          var imgUrl = p.srcTemplate.replace('{imageId}', imgId);
-          add(imgId, imgUrl, a.prompt);
-          notifyBadge();
-        }
+        processLogMessage(patterns[j], a);
       }
-      var promptKeys = DETECTION_CONFIG.promptKeys;
-      for (var k = 0; k < promptKeys.length; k++) {
-        if (a && a[promptKeys[k]]) lastPrompt = a[promptKeys[k]];
-      }
+      var prompt = extractPrompt(a);
+      if (prompt) lastPrompt = prompt;
     }
   };
-  console.log = patchedLog;
 
-  window.addEventListener('beforeunload', function() {
+  if (console.log !== patchedLog) {
+    try {
+      console.log = patchedLog;
+    } catch(e) {
+      try { Object.defineProperty(console, 'log', {value: patchedLog, writable: true, configurable: true}); } catch(e2) {}
+    }
+  }
+
+  function restoreConsoleLog() {
     console.log = origConsoleLog;
-  });
+  }
+
+  window.addEventListener('beforeunload', restoreConsoleLog);
+  window.addEventListener('pagehide', restoreConsoleLog);
 
   scan();
 })();

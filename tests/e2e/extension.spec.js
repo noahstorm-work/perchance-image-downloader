@@ -27,6 +27,7 @@ test.describe('Perchance Image Downloader', function() {
     expect(m.name).toBeTruthy();
     expect(m.version).toBeTruthy();
     expect(m.content_scripts).toBeTruthy();
+    expect(m.content_scripts[0].js).toContain('shared.js');
     expect(m.content_scripts[0].js).toContain('content.js');
     expect(m.content_scripts[0].js).toContain('overlay.js');
   });
@@ -34,19 +35,17 @@ test.describe('Perchance Image Downloader', function() {
   test('all source files exist', async function() {
     var fs = require('fs');
     var root = path.join(__dirname, '../..');
-    var files = ['background.js', 'content.js', 'overlay.js', 'overlay.css', 'manifest.json'];
+    var files = ['shared.js', 'background.js', 'content.js', 'overlay.js', 'overlay.css', 'manifest.json'];
     files.forEach(function(f) {
       expect(fs.existsSync(path.join(root, f))).toBe(true);
     });
   });
 
-  test('all SVG icons exist', async function() {
+  test('manifest includes shared.js', async function() {
     var fs = require('fs');
-    var svgDir = path.join(__dirname, '../../icons/svg');
-    var icons = ['close', 'sun', 'moon', 'download', 'refresh', 'chevron-left', 'check', 'chevron-right', 'expand', 'alert-circle'];
-    icons.forEach(function(name) {
-      expect(fs.existsSync(path.join(svgDir, name + '.svg'))).toBe(true);
-    });
+    var m = JSON.parse(fs.readFileSync(path.join(__dirname, '../../manifest.json'), 'utf8'));
+    expect(m.content_scripts[0].js).toContain('shared.js');
+    expect(m.background.scripts).toContain('shared.js');
   });
 
   test('CSS has all required classes', async function() {
@@ -61,9 +60,11 @@ test.describe('Perchance Image Downloader', function() {
   test('JS files use browser polyfill', async function() {
     var fs = require('fs');
     var root = path.join(__dirname, '../..');
+    var shared = fs.readFileSync(path.join(root, 'shared.js'), 'utf8');
+    expect(shared).toContain("typeof browser !== 'undefined' ? browser : chrome");
     ['background.js', 'content.js', 'overlay.js'].forEach(function(f) {
       var code = fs.readFileSync(path.join(root, f), 'utf8');
-      expect(code).toContain("typeof browser !== 'undefined' ? browser : chrome");
+      expect(code).toContain('self.__pdl');
     });
   });
 });
